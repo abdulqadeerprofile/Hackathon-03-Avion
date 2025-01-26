@@ -5,8 +5,7 @@ import {
   updateProfile 
 } from "firebase/auth"; // Import updateProfile here
 import { auth, googleProvider } from "./firebase";
-import { doc, setDoc } from "firebase/firestore"; // Firestore functions
-import { auth, db } from "./firebase"; // Replace with your Firebase setup
+
 
 export const signUpWithEmail = async (displayName, address, username, phone, email, password) => {
   try {
