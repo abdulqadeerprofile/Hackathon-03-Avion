@@ -1,10 +1,12 @@
-"use client";
-import { useEffect, useState } from 'react';
-import { Truck } from 'lucide-react';
+'use client'
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import Link from 'next/link';
+import Link from "next/link";
 import sanityClient from "@sanity/client";
+import toast, { Toaster } from "react-hot-toast";
+import { auth } from "../../firebase/firebase";
+import { User } from "firebase/auth";
 
 const sanity = sanityClient({
   projectId: "ah48gcwm",
@@ -34,6 +36,7 @@ interface Products {
   category: Category;
   price: number;
   tags: string[];
+  quantity: number;
 }
 
 async function fetchProducts() {
@@ -44,10 +47,11 @@ async function fetchProducts() {
       "image": image.asset->url,
       price,
       description,
-      "features": features[0..4], // Limit to first 4 features
+      "features": features[0..4],
       dimensions,
       category,
-      tags
+      tags,
+      quantity
     }
   `);
   return products;
@@ -56,6 +60,17 @@ async function fetchProducts() {
 export default function FeaturesSection() {
   const [products, setProducts] = useState<Products[]>([]);
   const [isVisible, setIsVisible] = useState(false);
+  const [isModalOpen, setModalOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [userWishlist, setUserWishlist] = useState<Products[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser); // Set the user state based on auth status
+    });
+
+    return () => unsubscribe(); // Cleanup listener
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,97 +86,98 @@ export default function FeaturesSection() {
     setIsVisible(true);
   }, []);
 
-  return (
-    <section className="py-16 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
-      <h2
-        className={`text-3xl md:text-4xl font-serif text-center mb-16 font-clash transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-4'}`}
-        style={{ fontFamily: 'var(--font-clash-reg)' }}
-      >
-        What makes our brand different
-      </h2>
+  useEffect(() => {
+    if (user) {
+      // Fetch the user's wishlist from localStorage if available
+      const wishlist = JSON.parse(localStorage.getItem(user.uid + "_wishlist") || "[]");
+      console.log("Fetched wishlist from localStorage:", wishlist); // Debugging log
+      setUserWishlist(wishlist);
+    }
+  }, [user]);
 
-      {/* Features section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-24">
-        {products.length === 0 ? (
-          <p className="col-span-full text-center">No features available at the moment.</p>
-        ) : (
-          products.map((product) => (
-            product.features.slice(0, 4).map((feature, index) => ( // Limit to first 4 features
-              <div
-                key={`${product._id}-${index}`}
-                className={`space-y-3 p-6 rounded-lg transition-all duration-500 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-                style={{ backgroundColor: 'white', transitionDelay: `${index * 100}ms` }}
-              >
-                <div className="transition-transform duration-300 ease-in-out hover:scale-110">
-                </div>
-                <h3 className="text-xl font-semibold" style={{ fontFamily: 'var(--font-clash-reg)' }}>
-                  {feature}
-                </h3>
-                <p className="text-muted-foreground" style={{ fontFamily: 'var(--font-clash-reg)' }}>
-                  {product.description}
-                </p>
+  const addToWishlist = (product: Products) => {
+    if (!user) {
+      setModalOpen(true); // Show modal for unauthenticated users
+      return;
+    }
+
+    const wishlist = JSON.parse(localStorage.getItem(user.uid + "_wishlist") || "[]");
+
+    const isInWishlist = wishlist.some((item: Products) => item._id === product._id);
+    if (isInWishlist) {
+      toast.error(`${product.name} is already in your wishlist!`, { position: "bottom-right" });
+    } else {
+      wishlist.push(product);
+      localStorage.setItem(user.uid + "_wishlist", JSON.stringify(wishlist)); // Update localStorage
+      setUserWishlist(wishlist); // Update the local state to reflect changes
+      console.log("Updated wishlist in localStorage:", wishlist); // Debugging log
+      toast.success(`${product.name} added to wishlist!`, { position: "bottom-right" });
+    }
+  };
+
+  return (
+    <>
+      <Toaster />
+      <section className="py-16 px-4 md:px-6 lg:px-8 max-w-7xl mx-auto">
+        {/* Section Title */}
+        <h2 className={`text-3xl md:text-4xl font-serif text-center mb-16 font-clash transition-all duration-700 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-4"}`} style={{ fontFamily: "var(--font-clash-reg)" }}>
+          What makes our brand different
+        </h2>
+
+        {/* Products Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {products.length === 0 ? (
+            <p className="col-span-full text-center">No products available at the moment.</p>
+          ) : (
+            products.map((product, index) => (
+              <div key={product._id} className={`transition-all duration-500 ease-out ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`} style={{ transitionDelay: `${index * 100}ms` }}>
+                <Card className="border-0 shadow-none group">
+                  <div className="aspect-square relative overflow-hidden mb-3">
+                    <img src={product.image} alt={product.name} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
+                  </div>
+                  <h3 className="font-clash text-xl font-extrabold text-gray-900">{product.name}</h3>
+                  <p className="text-sm font-clash text-gray-500">£{product.price}</p>
+                  <p className="text-sm font-clash text-gray-500">{product.quantity} Pieces</p>
+                  <Link href={`/products/${product._id}`}>
+                    <Button className="w-full transition-transform duration-200 hover:scale-105 active:scale-95" variant="outline" style={{ fontFamily: "var(--font-clash-reg)" }}>
+                      View Details
+                    </Button>
+                  </Link>
+                  <Button className="w-full transition-transform duration-200 hover:scale-105 active:scale-95 mt-1 bg-[#2A254B] hover:bg-[#2A254B]/90 text-white font-clash" onClick={() => addToWishlist(product)}>
+                    Add to Wishlist
+                  </Button>
+                </Card>
               </div>
             ))
-          ))
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Products section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {products.length === 0 ? (
-          <p className="col-span-full text-center">No products available at the moment.</p>
-        ) : (
-          products.map((product, index) => (
-            <div
-              key={product._id}
-              className={`transition-all duration-500 ease-out ${isVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-              style={{ transitionDelay: `${index * 100}ms` }}
-            >
-              <Card className="border-0 shadow-none group">
-                <div className="aspect-square relative overflow-hidden mb-3">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
-                  />
-                </div>
-                <h3 className="font-clash font-medium text-lg" style={{ fontFamily: 'var(--font-clash-reg)' }}>
-                  {product.name}
-                </h3>
-                <p className="text-muted-foreground mb-3" style={{ fontFamily: 'var(--font-clash-reg)' }}>
-                  £{product.price}
-                </p>
-                <Link href="/products">
-                  <Button
-                    className="w-full transition-transform duration-200 hover:scale-105 active:scale-95"
-                    variant="outline"
-                    style={{ fontFamily: 'var(--font-clash-reg)' }}
-                  >
-                    View Details
-                  </Button>
-                </Link>
-              </Card>
+        {/* View collection button */}
+        <div className={`text-center mt-12 transition-all duration-700 ease-out ${isVisible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}`} style={{ transitionDelay: "500ms" }}>
+          <Link href="/product-listing">
+            <Button variant="outline" size="lg" className="font-clash transition-transform duration-200 hover:scale-105 active:scale-95" style={{ fontFamily: "var(--font-clash-reg)" }}>
+              View collection
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Modal for unauthenticated users */}
+      {!user && isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={() => setModalOpen(false)}>
+          <div className="bg-white p-6 w-4/5 max-w-xl relative z-60" onClick={(e) => e.stopPropagation()}>
+            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-700" onClick={() => setModalOpen(false)}>&times;</button>
+            <div className="text-center">
+              <p className="text-gray-500 mb-4 font-clash">Please <strong>Sign In</strong> or <strong>Sign Up</strong> to add this item to your wishlist.</p>
+              <Link href="/acc-creation">
+                <Button className="rounded-none bg-[#2A254B] px-8 hover:bg-[#2A254B]/90 font-clash">
+                  Sign In / Sign Up
+                </Button>
+              </Link>
             </div>
-          ))
-        )}
-      </div>
-
-      {/* View collection button */}
-      <div
-        className={`text-center mt-12 transition-all duration-700 ease-out ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
-        style={{ transitionDelay: '500ms' }}
-      >
-        <Link href="/product-listing">
-          <Button
-            variant="outline"
-            size="lg"
-            className="font-clash transition-transform duration-200 hover:scale-105 active:scale-95"
-            style={{ fontFamily: 'var(--font-clash-reg)' }}
-          >
-            View collection
-          </Button>
-        </Link>
-      </div>
-    </section>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

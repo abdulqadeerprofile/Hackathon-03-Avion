@@ -17,7 +17,7 @@ export default function Footer() {
       style={{ fontFamily: "var(--font-clash-reg)" }}
     >
       <div className="max-w-[1440px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-x-11 gap-y-12">
           {/* Menu Column */}
           <div className="space-y-6">
             <h3 className="text-base font-normal">Menu</h3>
@@ -34,33 +34,8 @@ export default function Footer() {
               <Link href="#" className="text-sm hover:underline">
                 Popular this week
               </Link>
-              <Link href="#" className="text-sm hover:underline">
+              <Link href="/product-listing" className="text-sm hover:underline">
                 All products
-              </Link>
-            </nav>
-          </div>
-
-          {/* Categories Column */}
-          <div className="space-y-6">
-            <h3 className="text-base font-normal">Categories</h3>
-            <nav className="flex flex-col space-y-4">
-              <Link href="#" className="text-sm hover:underline">
-                Crockery
-              </Link>
-              <Link href="#" className="text-sm hover:underline">
-                Furniture
-              </Link>
-              <Link href="#" className="text-sm hover:underline">
-                Homeware
-              </Link>
-              <Link href="#" className="text-sm hover:underline">
-                Plant pots
-              </Link>
-              <Link href="#" className="text-sm hover:underline">
-                Chairs
-              </Link>
-              <Link href="#" className="text-sm hover:underline">
-                Crockery
               </Link>
             </nav>
           </div>

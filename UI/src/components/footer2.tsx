@@ -15,7 +15,7 @@ const Footer2 = () => {
       style={{ fontFamily: "var(--font-clash-reg)" }}
     >
       <div className="max-w-[1440px] mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-x-8 gap-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-x-36 gap-y-12">
           {/* Column 1: Company Info */}
           <div className="space-y-4">
             <h3 className="text-base font-normal">Avion</h3>
@@ -65,21 +65,7 @@ const Footer2 = () => {
               )}
             </nav>
           </div>
-
-          {/* Column 4: Categories */}
-          <div className="space-y-6">
-            <h3 className="text-base font-normal">Categories</h3>
-            <nav className="flex flex-col space-y-4">
-              {["Crockery", "Furniture", "Homeware", "Plant pots", "Chairs", "Crockery"].map(
-                (item, index) => (
-                  <Link key={index} href="#" className="text-sm hover:underline">
-                    {item}
-                  </Link>
-                )
-              )}
-            </nav>
-          </div>
-
+          
           {/* Column 5: Our Company */}
           <div className="space-y-6">
             <h3 className="text-base font-normal">Our company</h3>
