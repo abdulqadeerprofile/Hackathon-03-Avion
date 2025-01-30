@@ -30,6 +30,7 @@
     "firebase": "^11.2.0",
     "lucide-react": "^0.468.0",
     "next": "^15.1.5",
+    "next-i18next": "^15.4.1",
     "next-sanity": "^9.8.38",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -40,7 +41,8 @@
     "stripe": "^17.5.0",
     "styled-components": "^6.1.14",
     "tailwind-merge": "^2.5.5",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "use-debounce": "^10.0.4"
   },
   "devDependencies": {
     "@types/node": "^20",

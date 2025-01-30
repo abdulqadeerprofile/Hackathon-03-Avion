@@ -2,28 +2,38 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Menu, Heart, User } from "lucide-react"; // Import User icon for profile
+import { Search, Menu, Heart, User, Store } from "lucide-react"; // Added Store icon for sellers
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
-import { auth } from "../../firebase/firebase"; // Import your Firebase auth instance
-import { signOut } from "firebase/auth"; // Import signOut function
-import { User as fbUser } from "firebase/auth"
+import { auth, db } from "../../firebase/firebase"; // Import db as well
+import { signOut } from "firebase/auth";
+import { User as fbUser } from "firebase/auth";
+import { doc, getDoc } from 'firebase/firestore'; // Import Firestore functions
 
 export function Navbar() {
   const [isModalOpen, setModalOpen] = useState(false);
-  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false); // State for mobile menu
+  const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [user, setUser] = useState<fbUser | null>(null); // State to track signed-in user
+  const [user, setUser] = useState<fbUser | null>(null);
+  const [isSeller, setIsSeller] = useState(false);
   const router = useRouter();
 
-  // Listen for authentication state changes
+  // Enhanced useEffect to check user role
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
+      if (currentUser) {
+        // Check if user is a seller by reading from Firestore
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        const userData = userDoc.data();
+        setIsSeller(userData?.role === 'admin');
+      } else {
+        setIsSeller(false);
+      }
     });
 
-    return () => unsubscribe(); // Cleanup listener
+    return () => unsubscribe();
   }, []);
 
   const handleSearch = () => {
@@ -45,13 +55,43 @@ export function Navbar() {
       await signOut(auth);
       if (user) {
         const userWishlistKey = `wishlist_${user.uid}`;
-        localStorage.removeItem(userWishlistKey); // Clear wishlist for this user
+        localStorage.removeItem(userWishlistKey);
       }
-      router.push("/"); // Redirect to the homepage after sign-out
+      router.push("/");
     } catch (error) {
       console.error("Error signing out:", error);
     }
   };
+
+  // Profile section component to avoid repetition
+  const ProfileSection = () => (
+    <div className="flex items-center ml-4">
+      <Link href={isSeller ? "/admin-dashboard" : "/profile"}>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="text-gray-400 hover:text-gray-500"
+        >
+          {isSeller ? (
+            <Store className="h-6 w-6" />
+          ) : (
+            <User className="h-6 w-6" />
+          )}
+          <span className="sr-only">
+            {isSeller ? "Seller Dashboard" : "Profile"}
+          </span>
+        </Button>
+      </Link>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="ml-2 text-gray-700 hover:bg-gray-100"
+        onClick={handleSignOut}
+      >
+        Sign Out
+      </Button>
+    </div>
+  );
 
   return (
     <nav className="border-b border-gray-200">
@@ -84,7 +124,6 @@ export function Navbar() {
 
           {/* Right side: Cart, Wishlist, Profile/Sign-In */}
           <div className="lg:hidden">
-            {/* Mobile Menu Button */}
             <Button
               variant="ghost"
               size="icon"
@@ -97,59 +136,41 @@ export function Navbar() {
           </div>
 
           <div className="hidden lg:flex items-center">
-            {/* Wishlist Button */}
-            <a href="/wishlist">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="ml-4 text-gray-400 hover:text-gray-500"
-              >
-                <Heart className="h-6 w-6" />
-                <span className="sr-only">Wishlist</span>
-              </Button>
-            </a>
-
-            {/* Cart Button */}
-            <a href="/cart">
-              <Button
-                variant="ghost"
-                size="icon"
-                className="ml-4 text-gray-400 hover:text-gray-500"
-              >
-                <Image
-                  src="/icons/Shopping--cart.svg"
-                  alt="Shopping cart"
-                  width={16}
-                  height={16}
-                />
-                <span className="sr-only">Shopping cart</span>
-              </Button>
-            </a>
-
-            {/* User Profile or Sign-In Button */}
-            {user ? (
-              <div className="flex items-center ml-4">
-                {/* Profile Icon */}
-                <Link href="/profile">
+            {/* Only show wishlist and cart for regular users */}
+            {(!user || !isSeller) && (
+              <>
+                <a href="/wishlist">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="text-gray-400 hover:text-gray-500"
+                    className="ml-4 text-gray-400 hover:text-gray-500"
                   >
-                    <User className="h-6 w-6" />
-                    <span className="sr-only">Profile</span>
+                    <Heart className="h-6 w-6" />
+                    <span className="sr-only">Wishlist</span>
                   </Button>
-                </Link>
-                {/* Sign-Out Button */}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-2 text-gray-700 hover:bg-gray-100"
-                  onClick={handleSignOut}
-                >
-                  Sign Out
-                </Button>
-              </div>
+                </a>
+
+                <a href="/cart">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="ml-4 text-gray-400 hover:text-gray-500"
+                  >
+                    <Image
+                      src="/icons/Shopping--cart.svg"
+                      alt="Shopping cart"
+                      width={16}
+                      height={16}
+                    />
+                    <span className="sr-only">Shopping cart</span>
+                  </Button>
+                </a>
+              </>
+            )}
+
+            {/* User Profile or Sign-In Button */}
+            {user ? (
+              <ProfileSection />
             ) : (
               <Link href="/acc-creation">
                 <Button
@@ -169,24 +190,38 @@ export function Navbar() {
       {isMobileMenuOpen && (
         <div className="lg:hidden bg-white shadow-md">
           <div className="p-4">
-            <Link href="/wishlist">
+            {(!user || !isSeller) && (
+              <>
+                <Link href="/wishlist">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-left text-gray-700 hover:bg-gray-100"
+                  >
+                    Wishlist
+                  </Button>
+                </Link>
+                <Link href="/cart">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-left text-gray-700 hover:bg-gray-100"
+                  >
+                    Cart
+                  </Button>
+                </Link>
+              </>
+            )}
+            {user && (
               <Button
                 variant="ghost"
                 size="sm"
                 className="w-full text-left text-gray-700 hover:bg-gray-100"
+                onClick={handleSignOut}
               >
-                Wishlist
+                Sign Out
               </Button>
-            </Link>
-            <Link href="/cart">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-left text-gray-700 hover:bg-gray-100"
-              >
-                Cart
-              </Button>
-            </Link>
+            )}
           </div>
         </div>
       )}

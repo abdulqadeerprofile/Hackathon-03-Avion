@@ -53,6 +53,8 @@ interface Products {
 interface FilterOptions {
   categories: string[];
   priceRange: string;
+  page: number;
+  productsPerPage: number;
 }
 
 async function fetchCategories() {
@@ -69,7 +71,7 @@ async function fetchProducts(
   filterOptions: FilterOptions,
   searchTerm?: string
 ) {
-  const { categories, priceRange } = filterOptions;
+  const { categories, priceRange, page, productsPerPage } = filterOptions;
 
   let priceFilter = "";
   if (priceRange) {
@@ -105,7 +107,7 @@ async function fetchProducts(
       category->,
       tags,
       quantity
-    }`;
+    }[${(page - 1) * productsPerPage}...${page * productsPerPage}]`;
 
   const products = await sanity.fetch(query);
   return products;
@@ -120,6 +122,9 @@ export default function ProductListing() {
   const [products, setProducts] = useState<Products[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [productsPerPage] = useState(12);
+  const [totalProducts, setTotalProducts] = useState(0);
   const [isModalOpen, setModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [userWishlist, setUserWishlist] = useState<Products[]>([]);
@@ -148,6 +153,8 @@ export default function ProductListing() {
           {
             categories: [],
             priceRange: "",
+            page: currentPage,
+            productsPerPage,
           },
           searchTerm ? decodeURIComponent(searchTerm) : undefined
         );
@@ -159,7 +166,7 @@ export default function ProductListing() {
       }
     }
     loadInitialData();
-  }, [searchTerm]);
+  }, [searchTerm, currentPage]);
 
   useEffect(() => {
     async function loadFilteredProducts() {
@@ -169,6 +176,8 @@ export default function ProductListing() {
           {
             categories: selectedCategories,
             priceRange: selectedPriceRange,
+            page: currentPage,
+            productsPerPage,
           },
           searchTerm ? decodeURIComponent(searchTerm) : undefined
         );
@@ -180,7 +189,7 @@ export default function ProductListing() {
       }
     }
     loadFilteredProducts();
-  }, [selectedCategories, selectedPriceRange, searchTerm]);
+  }, [selectedCategories, selectedPriceRange, searchTerm, currentPage]);
 
   const handleCategoryChange = (categoryName: string) => {
     setSelectedCategories((prev) => {
@@ -239,6 +248,8 @@ export default function ProductListing() {
       });
     }
   };
+
+  const totalPages = Math.ceil(3);
 
   return (
     <>
@@ -382,6 +393,23 @@ export default function ProductListing() {
                       <p>Try adjusting your search or filters.</p>
                     </div>
                   )}
+                  <div className="flex justify-center mt-8 font-clash">
+                    <Button
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <span className="mx-4">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      disabled={currentPage === 2} // Disable the "Next" button after the second page
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
@@ -391,11 +419,25 @@ export default function ProductListing() {
       <Footer2 />
 
       {!user && isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={() => setModalOpen(false)}>
-          <div className="bg-white p-6 w-4/5 max-w-xl relative z-60" onClick={(e) => e.stopPropagation()}>
-            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-700" onClick={() => setModalOpen(false)}>&times;</button>
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+          onClick={() => setModalOpen(false)}
+        >
+          <div
+            className="bg-white p-6 w-4/5 max-w-xl relative z-60"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              onClick={() => setModalOpen(false)}
+            >
+              &times;
+            </button>
             <div className="text-center">
-              <p className="text-gray-500 mb-4 font-clash">Please <strong>Sign In</strong> or <strong>Sign Up</strong> to add this item to your wishlist.</p>
+              <p className="text-gray-500 mb-4 font-clash">
+                Please <strong>Sign In</strong> or <strong>Sign Up</strong> to
+                add this item to your wishlist.
+              </p>
               <Link href="/acc-creation">
                 <Button className="rounded-none bg-[#2A254B] px-8 hover:bg-[#2A254B]/90 font-clash">
                   Sign In / Sign Up

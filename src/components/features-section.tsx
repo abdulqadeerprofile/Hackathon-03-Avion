@@ -7,6 +7,7 @@ import sanityClient from "@sanity/client";
 import toast, { Toaster } from "react-hot-toast";
 import { auth } from "../../firebase/firebase";
 import { User } from "firebase/auth";
+import Image from "next/image"; // Import Next.js Image component
 
 const sanity = sanityClient({
   projectId: "ah48gcwm",
@@ -62,7 +63,6 @@ export default function FeaturesSection() {
   const [isVisible, setIsVisible] = useState(false);
   const [isModalOpen, setModalOpen] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [userWishlist, setUserWishlist] = useState<Products[]>([]);
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((currentUser) => {
@@ -86,15 +86,6 @@ export default function FeaturesSection() {
     setIsVisible(true);
   }, []);
 
-  useEffect(() => {
-    if (user) {
-      // Fetch the user's wishlist from localStorage if available
-      const wishlist = JSON.parse(localStorage.getItem(user.uid + "_wishlist") || "[]");
-      console.log("Fetched wishlist from localStorage:", wishlist); // Debugging log
-      setUserWishlist(wishlist);
-    }
-  }, [user]);
-
   const addToWishlist = (product: Products) => {
     if (!user) {
       setModalOpen(true); // Show modal for unauthenticated users
@@ -109,8 +100,6 @@ export default function FeaturesSection() {
     } else {
       wishlist.push(product);
       localStorage.setItem(user.uid + "_wishlist", JSON.stringify(wishlist)); // Update localStorage
-      setUserWishlist(wishlist); // Update the local state to reflect changes
-      console.log("Updated wishlist in localStorage:", wishlist); // Debugging log
       toast.success(`${product.name} added to wishlist!`, { position: "bottom-right" });
     }
   };
@@ -133,7 +122,14 @@ export default function FeaturesSection() {
               <div key={product._id} className={`transition-all duration-500 ease-out ${isVisible ? "opacity-100 scale-100" : "opacity-0 scale-95"}`} style={{ transitionDelay: `${index * 100}ms` }}>
                 <Card className="border-0 shadow-none group">
                   <div className="aspect-square relative overflow-hidden mb-3">
-                    <img src={product.image} alt={product.name} className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105" />
+                    {/* Replaced <img> with <Image> from Next.js */}
+                    <Image
+                      src={product.image}
+                      alt={product.name}
+                      width={400}  // Adjust as per your needs
+                      height={400} // Adjust as per your needs
+                      className="object-cover w-full h-full transition-transform duration-300 group-hover:scale-105"
+                    />
                   </div>
                   <h3 className="font-clash text-xl font-extrabold text-gray-900">{product.name}</h3>
                   <p className="text-sm font-clash text-gray-500">£{product.price}</p>

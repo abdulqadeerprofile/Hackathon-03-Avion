@@ -1,24 +1,28 @@
 import { 
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword, 
-  signInWithPopup, 
   updateProfile 
-} from "firebase/auth"; // Import updateProfile here
-import { auth, googleProvider } from "./firebase";
+} from "firebase/auth";
+import { auth } from "./firebase";
 
-
-export const signUpWithEmail = async (displayName, address, username, phone, email, password) => {
+export const signUpWithEmail = async (displayName, address, username, phone, email, password, userType) => {
   try {
     // Create user with email and password
     const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    console.log("User signed up:", userCredential.user);
-
-    // Update user's displayName after signup
+    
+    // Update user's profile with additional information
     await updateProfile(userCredential.user, {
-      displayName: displayName // Set the displayName here
+      displayName: displayName,
+      // Store user type and other details in photoURL as JSON
+      photoURL: JSON.stringify({
+        userType,
+        address,
+        username,
+        phone
+      })
     });
 
-    console.log("User display name updated:", userCredential.user.displayName);
+    console.log("User signed up:", userCredential.user);
     return userCredential.user;
   } catch (error) {
     console.error("Error signing up:", error.message);
@@ -37,13 +41,15 @@ export const signInWithEmail = async (email, password) => {
   }
 };
 
-export const signInWithGoogle = async () => {
+export const getUserType = (user) => {
   try {
-    const result = await signInWithPopup(auth, googleProvider); // signInWithPopup now correctly imported
-    console.log("Google Sign-In successful:", result.user);
-    return result.user;
+    if (user?.photoURL) {
+      const profileData = JSON.parse(user.photoURL);
+      return profileData.userType;
+    }
+    return null;
   } catch (error) {
-    console.error("Error with Google Sign-In:", error.message);
-    throw error;
+    console.error("Error getting user type:", error);
+    return null;
   }
 };

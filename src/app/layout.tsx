@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import Script from "next/script";
 
 // Load fonts locally
 const clashReg = localFont({
@@ -27,6 +28,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <Script src="//code.tidio.co/d9l6imn8zglffuhnmc2wwwzbon9wijjb.js" async/>
+      </head>
       <body
         className={`${clashReg.variable} ${clashMed.variable} antialiased`} // Correctly use the font variable classes
       >
