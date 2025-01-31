@@ -1,5 +1,6 @@
+"use client";
 import * as React from "react";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Navbar } from "@/components/Navbar";
@@ -158,7 +159,6 @@ export default function ProductListing() {
           searchTerm ? decodeURIComponent(searchTerm) : undefined
         );
         setProducts(initialProducts);
-        setTotalProducts(initialProducts.length); // Assuming all fetched products are shown here
       } catch (error) {
         console.error("Error loading initial data:", error);
       } finally {
@@ -182,7 +182,6 @@ export default function ProductListing() {
           searchTerm ? decodeURIComponent(searchTerm) : undefined
         );
         setProducts(filteredProducts);
-        setTotalProducts(filteredProducts.length); // Update total products
       } catch (error) {
         console.error("Error loading filtered products:", error);
       } finally {
@@ -217,6 +216,7 @@ export default function ProductListing() {
       const wishlist = JSON.parse(
         localStorage.getItem(user.uid + "_wishlist") || "[]"
       );
+      console.log("Fetched wishlist from localStorage:", wishlist); // Debugging log
       setUserWishlist(wishlist);
     }
   }, [user]);
@@ -242,16 +242,17 @@ export default function ProductListing() {
       wishlist.push(product);
       localStorage.setItem(user.uid + "_wishlist", JSON.stringify(wishlist)); // Update localStorage
       setUserWishlist(wishlist); // Update the local state to reflect changes
+      console.log("Updated wishlist in localStorage:", wishlist); // Debugging log
       toast.success(`${product.name} added to wishlist!`, {
         position: "bottom-right",
       });
     }
   };
 
-  const totalPages = Math.ceil(totalProducts / productsPerPage);
+  const totalPages = Math.ceil(3);
 
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <>
       <Toaster />
       <Navbar />
       <div className="min-h-screen bg-white">
@@ -259,99 +260,193 @@ export default function ProductListing() {
           <Image
             src="/Frame 143.png"
             alt="All Products"
-            className="object-cover"
             fill
+            className="object-cover brightness-75"
           />
-          <div className="absolute bottom-5 left-8 text-white">
-            <h1 className="text-4xl font-semibold">All Products</h1>
-            <h2 className="text-xl">Explore Our Products</h2>
-          </div>
+          <h1 className="font-clash absolute bottom-8 left-4 text-3xl font-normal text-white sm:left-8 lg:left-12">
+            {searchTerm
+              ? `Search Results for "${decodeURIComponent(searchTerm)}" (${products.length})`
+              : `All products (${products.length})`}
+          </h1>
         </div>
 
-        <div className="flex flex-row gap-5 py-5 px-20">
-          <div className="w-[300px]">
-            <Accordion type="multiple">
-              <AccordionItem value="item-1">
-                <AccordionTrigger>Filter by</AccordionTrigger>
-                <AccordionContent>
-                  <div>
-                    {Object.entries(filterConfig).map(([title, options]) => (
-                      <div key={title} className="pb-4">
-                        <h3 className="font-medium text-lg">{title}</h3>
-                        <div className="space-y-2">
-                          {options.map((option) => (
-                            <label
-                              key={option}
-                              className="flex items-center space-x-2"
-                            >
-                              <Checkbox
-                                checked={title === "Product type"
+        <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
+          <div className="lg:grid lg:grid-cols-[240px,1fr] lg:gap-x-8">
+            <div className="hidden lg:block">
+              <Accordion type="single" collapsible className="w-full">
+                {Object.entries(filterConfig).map(([category, options]) => (
+                  <AccordionItem key={category} value={category}>
+                    <AccordionTrigger className="text-base font-normal">
+                      {category}
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      <div className="space-y-4">
+                        {options.map((option) => (
+                          <div
+                            key={`${category}-${option}`}
+                            className="flex items-center space-x-2"
+                          >
+                            <Checkbox
+                              id={`${category}-${option}`}
+                              checked={
+                                category === "Product type"
                                   ? selectedCategories.includes(option)
-                                  : selectedPriceRange === option}
-                                onChange={() =>
-                                  title === "Product type"
-                                    ? handleCategoryChange(option)
-                                    : handlePriceChange(option)
-                                }
-                              />
-                              <span>{option}</span>
+                                  : selectedPriceRange === option
+                              }
+                              onCheckedChange={() =>
+                                category === "Product type"
+                                  ? handleCategoryChange(option)
+                                  : handlePriceChange(option)
+                              }
+                            />
+                            <label
+                              htmlFor={`${category}-${option}`}
+                              className="text-sm font-normal leading-none"
+                            >
+                              {option}
                             </label>
-                          ))}
-                        </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
 
-          <div className="flex-grow">
-            <div className="grid grid-cols-4 gap-4">
+            <div className="mt-6 lg:mt-0">
               {isLoading ? (
-                <div>Loading products...</div>
+                <div className="flex justify-center items-center">
+                  <div className="spinner-border animate-spin border-4 border-[#2A254B] border-t-transparent rounded-full w-12 h-12"></div>
+                </div>
               ) : (
-                products.map((product) => (
-                  <div key={product._id} className="border p-4 rounded">
-                    <Link href={`/product/${product._id}`}>
-                      <img src={product.image} alt={product.name} className="w-full h-[200px] object-cover" />
-                      <h3 className="text-lg">{product.name}</h3>
-                      <p className="text-sm">{product.description}</p>
-                      <div className="flex justify-between items-center">
-                        <span className="text-xl font-semibold">{`$${product.price}`}</span>
-                        <Button onClick={() => addToWishlist(product)}>Add to Wishlist</Button>
-                      </div>
-                    </Link>
+                <div>
+                  {products.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 md:grid-cols-3 lg:gap-x-8">
+                      {products.map((product) => (
+                        <div key={product._id} className="group">
+                          <div className="w-[300px] h-[300px] mx-auto aspect-h-1 aspect-w-1 overflow-hidden bg-gray-100">
+                            <Image
+                              src={product.image}
+                              alt={product.name}
+                              width={500}
+                              height={500}
+                              className="w-full h-full object-cover object-center"
+                            />
+                          </div>
+                          <div className="mt-4 flex justify-between">
+                            <div>
+                              <h3 className="font-clash text-xl font-extrabold text-gray-900">
+                                {product.name}
+                              </h3>
+                              <p className="text-sm font-clash text-gray-500">
+                                €{product.price}
+                              </p>
+                              <p className="text-sm font-clash text-gray-500">
+                                {product.quantity} Pieces
+                              </p>
+                            </div>
+                          </div>
+                          {product._id ? (
+                            <>
+                              <Link href={`/products/${product._id}`}>
+                                <Button
+                                  className="w-full transition-transform duration-200 hover:scale-105 active:scale-95 mt-1"
+                                  variant="outline"
+                                  style={{
+                                    fontFamily: "var(--font-clash-reg)",
+                                  }}
+                                >
+                                  View Details
+                                </Button>
+                              </Link>
+                              <Button
+                                className="w-full transition-transform duration-200  hover:scale-105 active:scale-95 mt-1 bg-[#2A254B] hover:bg-[#2A254B]/90 text-white font-clash"
+                                onClick={() => addToWishlist(product)}
+                              >
+                                Add to Wishlist
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              disabled
+                              className="w-full mt-1"
+                              variant="outline"
+                            >
+                              No Details
+                            </Button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <h2 className="text-2xl font-semibold text-gray-700 mb-4">
+                        No Products Found
+                      </h2>
+                      {searchTerm && (
+                        <p className="text-gray-500 mb-6">
+                          We couldn't find any products matching "
+                          {decodeURIComponent(searchTerm)}".
+                        </p>
+                      )}
+                      <p>Try adjusting your search or filters.</p>
+                    </div>
+                  )}
+                  <div className="flex justify-center mt-8 font-clash">
+                    <Button
+                      disabled={currentPage === 1}
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <span className="mx-4">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      disabled={currentPage === 2} // Disable the "Next" button after the second page
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                    >
+                      Next
+                    </Button>
                   </div>
-                ))
+                </div>
               )}
             </div>
+          </div>
+        </div>
+      </div>
+      <Footer2 />
 
-            <div className="flex justify-center mt-6">
-              <nav>
-                <ul className="flex space-x-2">
-                  {Array.from({ length: totalPages }, (_, index) => (
-                    <li
-                      key={index}
-                      className={`${
-                        currentPage === index + 1
-                          ? "text-blue-500"
-                          : "text-gray-700"
-                      }`}
-                    >
-                      <button onClick={() => setCurrentPage(index + 1)}>
-                        {index + 1}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
+      {!user && isModalOpen && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
+          onClick={() => setModalOpen(false)}
+        >
+          <div
+            className="bg-white p-6 w-4/5 max-w-xl relative z-60"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+              onClick={() => setModalOpen(false)}
+            >
+              &times;
+            </button>
+            <div className="text-center">
+              <p className="text-gray-500 mb-4 font-clash">
+                Please <strong>Sign In</strong> or <strong>Sign Up</strong> to
+                add this item to your wishlist.
+              </p>
+              <Link href="/acc-creation">
+                <Button className="rounded-none bg-[#2A254B] px-8 hover:bg-[#2A254B]/90 font-clash">
+                  Sign In / Sign Up
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
-
-        <Footer2 />
-      </div>
-    </Suspense>
+      )}
+    </>
   );
 }

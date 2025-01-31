@@ -2,35 +2,29 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Menu, Heart, User, Store } from "lucide-react"; // Added Store icon for sellers
+import { Search, Menu, Heart, UserRound, Store, BarChart } from "lucide-react"; // Updated icons
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
-import { auth, db } from "../../firebase/firebase"; // Import db as well
+import { auth } from "../../firebase/firebase";
 import { signOut } from "firebase/auth";
 import { User as fbUser } from "firebase/auth";
-import { doc, getDoc } from 'firebase/firestore'; // Import Firestore functions
+import { getUserType } from "../../firebase/auth"; // Import getUserType
 
 export function Navbar() {
   const [isModalOpen, setModalOpen] = useState(false);
   const [isMobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState<fbUser | null>(null);
-  const [isSeller, setIsSeller] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true); // Loading state
   const router = useRouter();
 
-  // Enhanced useEffect to check user role
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
+    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
       setUser(currentUser);
-      if (currentUser) {
-        // Check if user is a seller by reading from Firestore
-        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-        const userData = userDoc.data();
-        setIsSeller(userData?.role === 'admin');
-      } else {
-        setIsSeller(false);
-      }
+      setUserType(currentUser ? getUserType(currentUser) : null);
+      setLoading(false); // Set loading to false after fetching user data
     });
 
     return () => unsubscribe();
@@ -54,8 +48,7 @@ export function Navbar() {
     try {
       await signOut(auth);
       if (user) {
-        const userWishlistKey = `wishlist_${user.uid}`;
-        localStorage.removeItem(userWishlistKey);
+        localStorage.removeItem(`wishlist_${user.uid}`);
       }
       router.push("/");
     } catch (error) {
@@ -63,35 +56,30 @@ export function Navbar() {
     }
   };
 
-  // Profile section component to avoid repetition
+  // Profile section component
   const ProfileSection = () => (
     <div className="flex items-center ml-4">
-      <Link href={isSeller ? "/admin-dashboard" : "/profile"}>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-gray-400 hover:text-gray-500"
-        >
-          {isSeller ? (
-            <Store className="h-6 w-6" />
+      <Link href={userType === "admin" ? "/analytics-dashboard" : "/profile"}>
+        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500">
+          {userType === "admin" ? (
+            <BarChart className="h-6 w-6" /> // Updated icon
           ) : (
-            <User className="h-6 w-6" />
+            <UserRound className="h-6 w-6" /> // Updated icon
           )}
           <span className="sr-only">
-            {isSeller ? "Seller Dashboard" : "Profile"}
+            {userType === "admin" ? "Analytics Dashboard" : "Profile"}
           </span>
         </Button>
       </Link>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="ml-2 text-gray-700 hover:bg-gray-100"
-        onClick={handleSignOut}
-      >
+      <Button variant="ghost" size="sm" className="ml-2 text-gray-700 hover:bg-gray-100" onClick={handleSignOut}>
         Sign Out
       </Button>
     </div>
   );
+
+  if (loading) {
+    return <div>Loading...</div>; // Or show a loader
+  }
 
   return (
     <nav className="border-b border-gray-200">
@@ -99,12 +87,7 @@ export function Navbar() {
         <div className="flex justify-between items-center h-16">
           {/* Left side: Search Icon */}
           <div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-400 hover:text-gray-500"
-              onClick={() => setModalOpen(true)}
-            >
+            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500" onClick={() => setModalOpen(true)}>
               <Search className="h-6 w-6" />
               <span className="sr-only">Search</span>
             </Button>
@@ -113,23 +96,13 @@ export function Navbar() {
           {/* Center: Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center">
-              <span
-                className="text-2xl"
-                style={{ fontFamily: "var(--font-clash-reg)" }}
-              >
-                Avion
-              </span>
+              <span className="text-2xl" style={{ fontFamily: "var(--font-clash-reg)" }}>Avion</span>
             </Link>
           </div>
 
           {/* Right side: Cart, Wishlist, Profile/Sign-In */}
           <div className="lg:hidden">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-gray-400 hover:text-gray-500"
-              onClick={() => setMobileMenuOpen((prev) => !prev)}
-            >
+            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500" onClick={() => setMobileMenuOpen((prev) => !prev)}>
               <Menu className="h-6 w-6" />
               <span className="sr-only">Open menu</span>
             </Button>
@@ -137,31 +110,18 @@ export function Navbar() {
 
           <div className="hidden lg:flex items-center">
             {/* Only show wishlist and cart for regular users */}
-            {(!user || !isSeller) && (
+            {(!user || userType !== "admin") && (
               <>
                 <a href="/wishlist">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-4 text-gray-400 hover:text-gray-500"
-                  >
+                  <Button variant="ghost" size="icon" className="ml-4 text-gray-400 hover:text-gray-500">
                     <Heart className="h-6 w-6" />
                     <span className="sr-only">Wishlist</span>
                   </Button>
                 </a>
 
                 <a href="/cart">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="ml-4 text-gray-400 hover:text-gray-500"
-                  >
-                    <Image
-                      src="/icons/Shopping--cart.svg"
-                      alt="Shopping cart"
-                      width={16}
-                      height={16}
-                    />
+                  <Button variant="ghost" size="icon" className="ml-4 text-gray-400 hover:text-gray-500">
+                    <Image src="/icons/Shopping--cart.svg" alt="Shopping cart" width={16} height={16} />
                     <span className="sr-only">Shopping cart</span>
                   </Button>
                 </a>
@@ -173,60 +133,12 @@ export function Navbar() {
               <ProfileSection />
             ) : (
               <Link href="/acc-creation">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="ml-4 text-gray-700 hover:bg-gray-100"
-                >
-                  Sign In
-                </Button>
+                <Button variant="ghost" size="sm" className="ml-4 text-gray-700 hover:bg-gray-100">Sign In</Button>
               </Link>
             )}
           </div>
         </div>
       </div>
-
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="lg:hidden bg-white shadow-md">
-          <div className="p-4">
-            {(!user || !isSeller) && (
-              <>
-                <Link href="/wishlist">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-left text-gray-700 hover:bg-gray-100"
-                  >
-                    Wishlist
-                  </Button>
-                </Link>
-                <Link href="/cart">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="w-full text-left text-gray-700 hover:bg-gray-100"
-                  >
-                    Cart
-                  </Button>
-                </Link>
-              </>
-            )}
-            {user && (
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full text-left text-gray-700 hover:bg-gray-100"
-                onClick={handleSignOut}
-              >
-                Sign Out
-              </Button>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Search Modal */}
       {isModalOpen && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
