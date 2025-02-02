@@ -161,13 +161,13 @@ export function AdminInsights() {
             <CardTitle className="font-clash">Total Revenue</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-2xl font-bold font-clash">${totalRevenue.toFixed(2)}</p>
+            <p className="text-2xl font-bold font-clash">£{totalRevenue.toFixed(2)}</p>
           </CardContent>
         </Card>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle className="font-clash">Highly Performed Product</CardTitle>
+          <CardTitle className="font-clash">Products Performance</CardTitle>
         </CardHeader>
         <CardContent>
           <Bar options={chartOptions} data={chartData} />

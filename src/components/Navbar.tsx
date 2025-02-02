@@ -2,14 +2,14 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Menu, Heart, UserRound, Store, BarChart } from "lucide-react"; // Updated icons
+import { Search, Menu, Heart, UserRound, Store, BarChart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Image from "next/image";
 import { auth } from "../../firebase/firebase";
 import { signOut } from "firebase/auth";
 import { User as fbUser } from "firebase/auth";
-import { getUserType } from "../../firebase/auth"; // Import getUserType
+import { getUserType } from "../../firebase/auth";
 
 export function Navbar() {
   const [isModalOpen, setModalOpen] = useState(false);
@@ -17,14 +17,17 @@ export function Navbar() {
   const [searchTerm, setSearchTerm] = useState("");
   const [user, setUser] = useState<fbUser | null>(null);
   const [userType, setUserType] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true); // Loading state
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((currentUser) => {
+    const unsubscribe = auth.onAuthStateChanged(async (currentUser) => {
       setUser(currentUser);
-      setUserType(currentUser ? getUserType(currentUser) : null);
-      setLoading(false); // Set loading to false after fetching user data
+      if (currentUser) {
+        const type = await getUserType(currentUser);
+        setUserType(type);
+      }
+      setLoading(false);
     });
 
     return () => unsubscribe();
@@ -56,81 +59,85 @@ export function Navbar() {
     }
   };
 
-  // Profile section component
-  const ProfileSection = () => (
-    <div className="flex items-center ml-4">
-      <Link href={userType === "admin" ? "/analytics-dashboard" : "/profile"}>
-        <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500">
-          {userType === "admin" ? (
-            <BarChart className="h-6 w-6" /> // Updated icon
-          ) : (
-            <UserRound className="h-6 w-6" /> // Updated icon
-          )}
-          <span className="sr-only">
-            {userType === "admin" ? "Analytics Dashboard" : "Profile"}
-          </span>
-        </Button>
-      </Link>
-      <Button variant="ghost" size="sm" className="ml-2 text-gray-700 hover:bg-gray-100" onClick={handleSignOut}>
-        Sign Out
-      </Button>
-    </div>
-  );
+  // Profile or Analytics Section
+  const UserSection = () => {
+    if (userType === "admin") {
+      return (
+        <Link href="/admin-dashboard">
+          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500">
+            <BarChart className="h-6 w-6" />
+            <span className="sr-only">Analytics Dashboard</span>
+          </Button>
+        </Link>
+      );
+    } else if (userType === "buyer") {
+      return (
+        <Link href="/profile">
+          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500">
+            <UserRound className="h-6 w-6" />
+            <span className="sr-only">Profile</span>
+          </Button>
+        </Link>
+      );
+    }
+    return null;
+  };
 
   if (loading) {
-    return <div>Loading...</div>; // Or show a loader
+    return <div>Loading...</div>;
   }
 
   return (
     <nav className="border-b border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
-          {/* Left side: Search Icon */}
-          <div>
-            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500" onClick={() => setModalOpen(true)}>
-              <Search className="h-6 w-6" />
-              <span className="sr-only">Search</span>
-            </Button>
-          </div>
+          {/* Left: Search Icon */}
+          <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500" onClick={() => setModalOpen(true)}>
+            <Search className="h-6 w-6" />
+            <span className="sr-only">Search</span>
+          </Button>
 
           {/* Center: Logo */}
-          <div className="flex-shrink-0">
-            <Link href="/" className="flex items-center">
-              <span className="text-2xl" style={{ fontFamily: "var(--font-clash-reg)" }}>Avion</span>
-            </Link>
-          </div>
+          <Link href="/" className="flex items-center">
+            <span className="text-2xl" style={{ fontFamily: "var(--font-clash-reg)" }}>Avion</span>
+          </Link>
 
-          {/* Right side: Cart, Wishlist, Profile/Sign-In */}
+          {/* Right: Menu / Cart / Profile */}
           <div className="lg:hidden">
-            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500" onClick={() => setMobileMenuOpen((prev) => !prev)}>
+            <Button variant="ghost" size="icon" className="text-gray-400 hover:text-gray-500" onClick={() => setMobileMenuOpen(!isMobileMenuOpen)}>
               <Menu className="h-6 w-6" />
               <span className="sr-only">Open menu</span>
             </Button>
           </div>
 
           <div className="hidden lg:flex items-center">
-            {/* Only show wishlist and cart for regular users */}
-            {(!user || userType !== "admin") && (
+            {/* Wishlist and Cart (Only for Buyers) */}
+            {(!user || userType === "buyer") && (
               <>
-                <a href="/wishlist">
+                <Link href="/wishlist">
                   <Button variant="ghost" size="icon" className="ml-4 text-gray-400 hover:text-gray-500">
                     <Heart className="h-6 w-6" />
                     <span className="sr-only">Wishlist</span>
                   </Button>
-                </a>
+                </Link>
 
-                <a href="/cart">
+                <Link href="/cart">
                   <Button variant="ghost" size="icon" className="ml-4 text-gray-400 hover:text-gray-500">
                     <Image src="/icons/Shopping--cart.svg" alt="Shopping cart" width={16} height={16} />
                     <span className="sr-only">Shopping cart</span>
                   </Button>
-                </a>
+                </Link>
               </>
             )}
 
-            {/* User Profile or Sign-In Button */}
+            {/* Profile or Analytics */}
+            {user && <UserSection />}
+
+            {/* Sign-In or Sign-Out */}
             {user ? (
-              <ProfileSection />
+              <Button variant="ghost" size="sm" className="ml-2 text-gray-700 hover:bg-gray-100" onClick={handleSignOut}>
+                Sign Out
+              </Button>
             ) : (
               <Link href="/acc-creation">
                 <Button variant="ghost" size="sm" className="ml-4 text-gray-700 hover:bg-gray-100">Sign In</Button>
@@ -139,27 +146,16 @@ export function Navbar() {
           </div>
         </div>
       </div>
+
+      {/* Search Modal */}
       {isModalOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50"
-          onClick={() => setModalOpen(false)}
-        >
-          <div
-            className="bg-white p-6 w-4/5 max-w-xl relative z-60"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              onClick={() => setModalOpen(false)}
-            >
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50" onClick={() => setModalOpen(false)}>
+          <div className="bg-white p-6 w-4/5 max-w-xl relative z-60" onClick={(e) => e.stopPropagation()}>
+            <button className="absolute top-4 right-4 text-gray-500 hover:text-gray-700" onClick={() => setModalOpen(false)}>
               &times;
             </button>
-            <h2 className="text-xl font-semibold text-gray-700 mb-4 font-clash">
-              Looking for something?
-            </h2>
-            <p className="text-gray-600 mb-4 font-clash">
-              Input the name of the product and find out if we have it.
-            </p>
+            <h2 className="text-xl font-semibold text-gray-700 mb-4 font-clash">Looking for something?</h2>
+            <p className="text-gray-600 mb-4 font-clash">Input the name of the product and find out if we have it.</p>
             <div className="items-center space-y-2 font-clash">
               <Input
                 type="search"
@@ -168,14 +164,7 @@ export function Navbar() {
                 onKeyPress={handleKeyPress}
                 className="flex-grow border-gray-300"
               />
-              <Button
-                onClick={handleSearch}
-                style={{
-                  backgroundColor: "#2A254B",
-                  color: "white",
-                }}
-                className="px-4 py-2"
-              >
+              <Button onClick={handleSearch} style={{ backgroundColor: "#2A254B", color: "white" }} className="px-4 py-2">
                 Search
               </Button>
             </div>

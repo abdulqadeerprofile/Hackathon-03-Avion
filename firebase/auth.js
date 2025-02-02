@@ -1,55 +1,66 @@
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  updateProfile 
-} from "firebase/auth";
-import { auth } from "./firebase";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "firebase/auth"
+import { doc, setDoc, getDoc } from "firebase/firestore"
+import { auth, db } from "./firebase"
 
-export const signUpWithEmail = async (displayName, address, username, phone, email, password, userType) => {
+export const signUpWithEmail = async (
+  displayName,
+  address,
+  username,
+  phone,
+  email,
+  password,
+  userType
+) => {
   try {
-    // Create user with email and password
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    
-    // Update user's profile with additional information
-    await updateProfile(userCredential.user, {
-      displayName: displayName,
-      // Store user type and other details in photoURL as JSON
-      photoURL: JSON.stringify({
-        userType,
-        address,
-        username,
-        phone
-      })
-    });
+    const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+    const user = userCredential.user
 
-    console.log("User signed up:", userCredential.user);
-    return userCredential.user;
+    await setDoc(doc(db, "users", user.uid), {
+      uid: user.uid,
+      displayName,
+      email,
+      userType,
+      ...(userType === "buyer" && { address, username, phone }),
+      createdAt: new Date().toISOString(),
+    })
+
+    return user
   } catch (error) {
-    console.error("Error signing up:", error.message);
-    throw error;
+    throw error
   }
-};
+}
 
 export const signInWithEmail = async (email, password) => {
   try {
-    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-    console.log("User signed in:", userCredential.user);
-    return userCredential.user;
+    const userCredential = await signInWithEmailAndPassword(auth, email, password)
+    return userCredential.user
   } catch (error) {
-    console.error("Error signing in:", error.message);
-    throw error;
+    throw error
   }
-};
+}
 
-export const getUserType = (user) => {
+export const signOutUser = async () => {
   try {
-    if (user?.photoURL) {
-      const profileData = JSON.parse(user.photoURL);
-      return profileData.userType;
-    }
-    return null;
+    await signOut(auth)
   } catch (error) {
-    console.error("Error getting user type:", error);
-    return null;
+    throw error
   }
-};
+}
+
+export const getUserType = async (user) => {
+  if (!user) return null
+
+  const userRef = doc(db, "users", user.uid)
+  const userSnap = await getDoc(userRef)
+
+  if (userSnap.exists()) {
+    return userSnap.data().userType || "buyer"
+  }
+
+  return "buyer"
+}
+
+export const isUserAdmin = async (user) => {
+  const userType = await getUserType(user)
+  return userType === "admin"
+}

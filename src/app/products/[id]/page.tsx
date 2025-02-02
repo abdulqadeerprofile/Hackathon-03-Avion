@@ -75,7 +75,8 @@ async function fetchRelatedProducts(categoryId: string, currentProductId: string
       _id,
       name,
       "image": image.asset->url,
-      price
+      price,
+      quantity
     }
     `,
     { categoryId, currentProductId },

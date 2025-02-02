@@ -9,7 +9,6 @@ export default function about(){
         <About/>
         <News/>
         <Footer2/>
-
         </>
     )
 }

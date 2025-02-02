@@ -4,6 +4,7 @@ import Features from "@/components/features-section"
 import News from "@/components/newsletter-section"
 import Hero2 from "@/components/hero-section"
 import Footer from "@/components/footer"
+import Script from "next/script";
 export default function Home() {
   return (
     <>
