@@ -1,6 +1,6 @@
 "use client";
 import * as React from "react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react"; // Add Suspense import
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Navbar } from "@/components/Navbar";
@@ -113,7 +113,7 @@ async function fetchProducts(
   return products;
 }
 
-export default function ProductListing() {
+function ProductListingContent() {
   const searchParams = useSearchParams();
   const searchTerm = searchParams.get("search") || "";
 
@@ -448,5 +448,13 @@ export default function ProductListing() {
         </div>
       )}
     </>
+  );
+}
+
+export default function ProductListing() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProductListingContent />
+    </Suspense>
   );
 }
