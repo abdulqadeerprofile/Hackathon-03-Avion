@@ -45,7 +45,7 @@ const sanity = sanityClient({
   apiVersion: "2024-01-04",
   useCdn: false,
   token:
-    "skcDgazOaH2vEBorUmcZ5y5WZdPueznbbM1pqNAVdlxhPT8cbvjN1S5m3IVRcbY0vwaax9kg0lIDUcEsumP6r1Wj5A7S4vrt9js8kPiZzyOSycGW25Tw5gMO2bAPaA0UQHq1CL6SxdCzrDQrKZJE8cW5a9ThbaCuBp9QOYbGkSa5tlktcDhg",
+    "skV4yXuqML3UXWhaMgP3OAcyGBTAoVuhpBLb7gtM9jbM6pBtlxFLmFl2oY1w9DaWCvdMcMr6dkpBzsOgAsnSMtbD5tscR0cU4Tis5Rhbvl3hYXZKVkMGlgiZ3Hvg4ZGCaZogaD3kiTaKn8G7HgogFJssJ6ammRzIbr3mjuXZrnSwCM33vmmJ",
 })
 
 export default function ManagerDashboard() {
