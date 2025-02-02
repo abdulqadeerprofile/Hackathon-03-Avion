@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Bar } from "react-chartjs-2"
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from "chart.js"
 
+// Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend)
 
 interface Review {
@@ -87,10 +88,10 @@ export function AdminInsights() {
       cartAdditions: productCartItems.length,
     }
   })
-  
-  // Check the productPerformance data
-  console.log(productPerformance);
-  
+
+  // Log the productPerformance data for debugging
+  console.log("Product Performance:", productPerformance)
+
   const chartData = {
     labels: productPerformance.map((p) => p.productId), // Ensure all products are listed here
     datasets: [
@@ -111,9 +112,9 @@ export function AdminInsights() {
       },
     ],
   }
-  
-  // Log the final chartData to check if all data is correct
-  console.log(chartData);
+
+  // Log the final chartData for debugging
+  console.log("Chart Data:", chartData)
 
   const chartOptions = {
     responsive: true,
@@ -123,7 +124,7 @@ export function AdminInsights() {
       },
       title: {
         display: true,
-        text: "Product Performance" ,
+        text: "Product Performance",
       },
     },
   }
@@ -184,4 +185,3 @@ export function AdminInsights() {
     </div>
   )
 }
-
