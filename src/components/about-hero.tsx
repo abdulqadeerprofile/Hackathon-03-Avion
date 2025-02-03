@@ -15,7 +15,7 @@ export default function AboutHero() {
           </h2>
           <div className="space-y-4 text-gray-600">
             <p>
-              {"When we started Avion, the idea was simple. Make high quality furniture affordable and available for the mass market."}
+              {"When we started Avion, The idea was simple. Make high quality furniture affordable and available for the mass market."}
             </p>
             <p>
               {"Handmade, and lovingly crafted furniture and homeware is what we live, breathe and design so our Chelsea boutique become the hotbed for the London interior design community."}
